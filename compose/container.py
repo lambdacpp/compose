@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 from functools import reduce
 
 import six
+import os
 
 from .const import LABEL_CONTAINER_NUMBER
 from .const import LABEL_PROJECT
@@ -15,12 +16,13 @@ class Container(object):
     Represents a Docker container, constructed from the output of
     GET /containers/:id:/json.
     """
-    def __init__(self, client, dictionary, has_been_inspected=False):
+    def __init__(self, client, dictionary, sh_dir=None , has_been_inspected=False):
         self.client = client
         self.dictionary = dictionary
         self.has_been_inspected = has_been_inspected
         self.log_stream = None
-
+        self.sh_dir = sh_dir
+        
     @classmethod
     def from_ps(cls, client, dictionary, **kwargs):
         """
@@ -38,13 +40,13 @@ class Container(object):
         return cls(client, new_dictionary, **kwargs)
 
     @classmethod
-    def from_id(cls, client, id):
-        return cls(client, client.inspect_container(id), has_been_inspected=True)
+    def from_id(cls, client, id, sh_dir=None):
+        return cls(client, client.inspect_container(id), sh_dir = sh_dir, has_been_inspected=True)
 
     @classmethod
-    def create(cls, client, **options):
+    def create(cls, client, sh_dir ,**options):
         response = client.create_container(**options)
-        return cls.from_id(client, response['Id'])
+        return cls.from_id(client, response['Id'], sh_dir)
 
     @property
     def id(self):
@@ -200,10 +202,30 @@ class Container(object):
         return None
 
     def start(self, **options):
-        return self.client.start(self.id, **options)
-
+        if self.sh_dir is not None:
+            sh_comm = os.path.join(self.sh_dir, 'before_start.sh')
+            if os.path.exists(sh_comm):
+                os.system(sh_comm+" "+self.name)
+            result = self.client.start(self.id, **options)
+            sh_comm = os.path.join(self.sh_dir, 'after_start.sh')
+            if os.path.exists(sh_comm):
+                os.system(sh_comm+" "+self.name)
+            return result
+        else:
+            return self.client.start(self.id, **options)
+        
     def stop(self, **options):
-        return self.client.stop(self.id, **options)
+        if self.sh_dir is not None:
+            sh_comm = os.path.join(self.sh_dir, 'before_stop.sh')
+            if os.path.exists(sh_comm):
+                os.system(sh_comm+" "+self.name)
+            result = self.client.stop(self.id, **options)
+            sh_comm = os.path.join(self.sh_dir, 'after_stop.sh')
+            if os.path.exists(sh_comm):
+                os.system(sh_comm+" "+self.name)
+            return result
+        else:
+            return self.client.stop(self.id, **options)
 
     def pause(self, **options):
         return self.client.pause(self.id, **options)
@@ -212,9 +234,11 @@ class Container(object):
         return self.client.unpause(self.id, **options)
 
     def kill(self, **options):
+        ##TODO??? sh_dir
         return self.client.kill(self.id, **options)
 
     def restart(self, **options):
+        ##TODO??? sh_dir
         return self.client.restart(self.id, **options)
 
     def remove(self, **options):

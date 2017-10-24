@@ -711,6 +711,9 @@ def process_service(service_config):
             path = service_dict['build']['context']
             service_dict['build']['context'] = resolve_build_path(working_dir, path)
 
+    if 'sh_dir' in service_dict and isinstance(service_dict['sh_dir'], six.string_types):
+        service_dict['sh_dir'] = resolve_build_path(working_dir, service_dict['sh_dir'])
+
     if 'volumes' in service_dict and service_dict.get('volume_driver') is None:
         service_dict['volumes'] = resolve_volume_paths(working_dir, service_dict)
 
@@ -1277,3 +1280,4 @@ def load_yaml(filename):
     except (IOError, yaml.YAMLError) as e:
         error_name = getattr(e, '__module__', '') + '.' + e.__class__.__name__
         raise ConfigurationError(u"{}: {}".format(error_name, e))
+

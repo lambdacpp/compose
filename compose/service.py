@@ -180,7 +180,7 @@ class Service(object):
         filters.update({'label': self.labels(one_off=one_off)})
 
         return list(filter(None, [
-            Container.from_ps(self.client, container)
+            Container.from_ps(self.client, container,sh_dir=self.options.get("sh_dir"))
             for container in self.client.containers(
                 all=stopped,
                 filters=filters)]))
@@ -191,7 +191,7 @@ class Service(object):
         """
         labels = self.labels() + ['{0}={1}'.format(LABEL_CONTAINER_NUMBER, number)]
         for container in self.client.containers(filters={'label': labels}):
-            return Container.from_ps(self.client, container)
+            return Container.from_ps(self.client, container, sh_dir=self.options.get("sh_dir"))
 
         raise ValueError("No container found for %s_%s" % (self.name, number))
 
@@ -291,7 +291,7 @@ class Service(object):
             log.info("Creating %s" % container_options['name'])
 
         try:
-            return Container.create(self.client, **container_options)
+            return Container.create(self.client, self.options.get('sh_dir',None), **container_options)
         except APIError as ex:
             raise OperationFailedError("Cannot create container for service %s: %s" %
                                        (self.name, ex.explanation))
@@ -510,7 +510,6 @@ class Service(object):
         container is removed.
         """
         log.info("Recreating %s" % container.name)
-
         container.stop(timeout=self.stop_timeout(timeout))
         container.rename_to_tmp_name()
         new_container = self.create_container(
@@ -660,7 +659,7 @@ class Service(object):
     # to remove the need to inspect every container
     def _next_container_number(self, one_off=False):
         containers = filter(None, [
-            Container.from_ps(self.client, container)
+            Container.from_ps(self.client, container, sh_dir=self.options.get("sh_dir"))
             for container in self.client.containers(
                 all=True,
                 filters={'label': self.labels(one_off=one_off)})
@@ -1420,4 +1419,11 @@ def convert_blkio_config(blkio_config):
         for item in blkio_config[field]:
             arr.append(dict([(k.capitalize(), v) for k, v in item.items()]))
         result[field] = arr
+    return result
+
+
+def services_sh_dir(services_config_dir):
+    result = {}
+    for service in services_config_dir:
+        result.setdefault(service['name'],service.get('sh_dir',None))
     return result
