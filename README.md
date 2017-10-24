@@ -63,3 +63,13 @@ Releasing
 ---------
 
 Releases are built by maintainers, following an outline of the [release process](https://github.com/docker/compose/blob/master/project/RELEASE-PROCESS.md).
+
+1.16.1.s Special Feature
+---------
+
+Support for running a specified script before and after the service starts or stops. Can set the script path in the `sh_dir` configuration item. Please use version 3 yaml.
+
+- `before_start.sh` will run before server start.
+- `after_start.sh` will run after server start.
+- `before_stop.sh` will run before server stop.
+- `after_stop.sh` will run after server stop.

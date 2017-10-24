@@ -1,6 +1,14 @@
 Change log
 ==========
 
+1.16.1.s (2017-10-24)
+-------------------
+
+### New features
+
+- Added support for the `sh_dir` parameter in service definitions.
+
+
 1.16.1 (2017-09-01)
 -------------------
 
